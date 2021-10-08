@@ -110,7 +110,6 @@ FROM deploy-php-image-base AS deploy-php-image
 ARG JENKINS_USER_ID=110
 ARG JENKINS_GROUP_ID=117
 ARG JENKINS_HOME=/home/jenkins
-ENV GIT_HOSTS="github.com"
 
 RUN groupadd -g $JENKINS_GROUP_ID jenkins && \
     useradd -u $JENKINS_USER_ID -s /bin/sh -g $JENKINS_GROUP_ID jenkins
@@ -122,10 +121,7 @@ RUN curl -o /usr/local/bin/composer1 -sSL https://getcomposer.org/download/lates
     ln -s /usr/local/bin/composer2 /usr/local/bin/composer
 
 RUN mkdir -p "$JENKINS_HOME/.cache" && \
-    mkdir -p "$JENKINS_HOME/.ssh" && \
-    for host in $GIT_HOSTS; do ssh-keyscan -H "$host" >> "$JENKINS_HOME/.ssh/known_hosts"; done && \
-    chown -R $JENKINS_USER_ID:$JENKINS_GROUP_ID "$JENKINS_HOME" && \
-    chmod 0700 "$JENKINS_HOME/.ssh"
+    chown -R $JENKINS_USER_ID:$JENKINS_GROUP_ID "$JENKINS_HOME"
 
 RUN apt-get -qq autoremove && apt-get -qq clean -y && rm -rf /var/lib/apt/lists/*
 
