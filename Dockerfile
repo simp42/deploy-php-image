@@ -61,7 +61,9 @@ RUN apt-get -qq install --no-install-recommends --no-install-suggests -y \
     msmtp \
     nodejs \
     php-uploadprogress \
-    sqlite3
+    sqlite3 \
+    unzip \
+    openssh-client
 
 RUN npm config set unsafe-perm true && npm install --global gulp-cli yarn
 
@@ -93,25 +95,45 @@ RUN for v in $PHP_VERSIONS; do \
     pkgs=$(echo ${!pkgvar} | awk -v v="$v" ' BEGIN {RS=" "; }  { printf "%s-%s ",v,$0 ; }' ); \
     [[ ${pkgs// } != "" ]] && (apt-get -qq install --no-install-recommends --no-install-suggests -y $pkgs || exit $?) \
 done
-RUN phpdismod xhprof
-RUN apt-get -qq autoremove -y
+RUN phpdismod xhprof uploadprogress && \
+    apt-get -qq autoremove -y && \
+  	update-alternatives --set php /usr/bin/php${PHP_DEFAULT_VERSION} && \
+    ln -sf /usr/sbin/php-fpm${PHP_DEFAULT_VERSION} /usr/sbin/php-fpm && \
+    mkdir -p /run/php && chown -R www-data:www-data /run
 ADD image-files /
-RUN	update-alternatives --set php /usr/bin/php${PHP_DEFAULT_VERSION}
-RUN ln -sf /usr/sbin/php-fpm${PHP_DEFAULT_VERSION} /usr/sbin/php-fpm
-RUN mkdir -p /run/php && chown -R www-data:www-data /run
 
 #END deploy-php-image-base
 
 ### ---------------------------deploy-php-image--------------------------------------
 FROM deploy-php-image-base AS deploy-php-image
 
-RUN apt-get -qq -y install openssh-client
-RUN /usr/local/bin/prepare_n.sh
+ARG JENKINS_USER_ID=110
+ARG JENKINS_GROUP_ID=117
+ARG JENKINS_HOME=/home/jenkins
+ENV GIT_HOSTS="github.com"
+
+RUN groupadd -g $JENKINS_GROUP_ID jenkins && \
+    useradd -u $JENKINS_USER_ID -s /bin/sh -g $JENKINS_GROUP_ID jenkins
+
 RUN curl -o /usr/local/bin/composer1 -sSL https://getcomposer.org/download/latest-1.x/composer.phar && \
-    chmod ugo+wx /usr/local/bin/composer1
-RUN curl -o /usr/local/bin/composer2 -sSL https://getcomposer.org/composer-stable.phar && \
-    chmod ugo+wx /usr/local/bin/composer2 && \
+    chmod 0755 /usr/local/bin/composer1 && \
+    curl -o /usr/local/bin/composer2 -sSL https://getcomposer.org/composer-stable.phar && \
+    chmod 0755 /usr/local/bin/composer2 && \
     ln -s /usr/local/bin/composer2 /usr/local/bin/composer
+
+RUN mkdir -p "$JENKINS_HOME/.cache" && \
+    mkdir -p "$JENKINS_HOME/.ssh" && \
+    for host in $GIT_HOSTS; do ssh-keyscan -H "$host" >> "$JENKINS_HOME/.ssh/known_hosts"; done && \
+    chown -R $JENKINS_USER_ID:$JENKINS_GROUP_ID "$JENKINS_HOME" && \
+    chmod 0700 "$JENKINS_HOME/.ssh"
+
 RUN apt-get -qq autoremove && apt-get -qq clean -y && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /usr/local/n && \
+    npm install n -g && \
+    chown -R $JENKINS_USER_ID:$JENKINS_GROUP_ID /usr/local/n && \
+    # make sure the required folders exist (safe to execute even if they already exist)
+    mkdir -p /usr/local/bin /usr/local/lib /usr/local/include /usr/local/share && \
+    chown -R $JENKINS_USER_ID:$JENKINS_GROUP_ID /usr/local/bin /usr/local/lib /usr/local/include /usr/local/share
 
 #END deploy-php-image
