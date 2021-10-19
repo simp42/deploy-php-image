@@ -63,7 +63,8 @@ RUN apt-get -qq install --no-install-recommends --no-install-suggests -y \
     php-uploadprogress \
     sqlite3 \
     unzip \
-    openssh-client
+    openssh-client \
+    rsync
 
 RUN npm config set unsafe-perm true && npm install --global gulp-cli yarn
 
