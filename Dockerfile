@@ -36,7 +36,7 @@ RUN apt-get -qq install --no-install-recommends --no-install-suggests -y \
 FROM base AS deploy-php-image-base
 ARG PHP_DEFAULT_VERSION="7.4"
 #ENV PHP_VERSIONS="php5.6 php7.0 php7.1 php7.2 php7.3 php7.4 php8.0 php8.1"
-ENV PHP_VERSIONS="php7.2 php7.3 php7.4 php8.0"
+ENV PHP_VERSIONS="php7.2 php7.3 php7.4 php8.0 php8.1"
 ENV PHP_INI=/etc/php/$PHP_DEFAULT_VERSION/fpm/php.ini
 # composer normally screams about running as root, we don't need that.
 ENV COMPOSER_ALLOW_SUPERUSER 1
@@ -127,10 +127,10 @@ RUN mkdir -p "$JENKINS_HOME/.cache" && \
 RUN apt-get -qq autoremove && apt-get -qq clean -y && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /usr/local/n && \
-    npm install n -g && \
+    npm install n -g bower gulp && \
     chown -R $JENKINS_USER_ID:$JENKINS_GROUP_ID /usr/local/n && \
     # make sure the required folders exist (safe to execute even if they already exist)
     mkdir -p /usr/local/bin /usr/local/lib /usr/local/include /usr/local/share && \
     chown -R $JENKINS_USER_ID:$JENKINS_GROUP_ID /usr/local/bin /usr/local/lib /usr/local/include /usr/local/share
 
-#END deploy-php-image
+#END deploy-php-image \
